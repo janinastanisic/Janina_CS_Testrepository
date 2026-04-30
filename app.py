@@ -471,9 +471,9 @@ if st.session_state.ergebnis: #Sofern Ergebnisse im Session state abgespeichert 
             value=f"CHF {e['gesamtpreis']:,.0f}".replace(",", "'")
         )
     with col_r2:
-        st.metric(
+        st.metric( #Formatiert die nächsten Zeilen als Kennzahlen (Kleiner Text + Grosse Zahl)
             label="Preis pro m2",
-            value=f"CHF {e['preis_pro_m2']:,.0f}".replace(",", "'")
+            value=f"CHF {e['preis_pro_m2']:,.0f}".replace(",", "'") #Zahl wird mit Hochkommas als Tausendertrennzeichen dargestellt
         )
 
     st.markdown("---")
