@@ -367,38 +367,38 @@ def erstelle_heatmap_karte(ausgewaehltes_quartier=None):
 # STREAMLIT APP
 # =============================================================
 
-st.title("Immobilien-Preisschaetzer Zürich")
-st.write("Gib die Eigenschaften deiner Immobilie ein - wir berechnen den geschätzten Marktwert.")
-st.markdown("---")
+st.title("Immobilien-Preisschaetzer Zürich") #Erstellt den Titel in Streamlit
+st.write("Gib die Eigenschaften deiner Immobilie ein - wir berechnen den geschätzten Marktwert.") #Erstellt den Beschreibungstext in Streamlit
+st.markdown("---") #Erstellt eine horizontale Trennlinie in Streamlit
 
 # ── 1. LAGE ──
-st.subheader("Lage")
-QUARTIERE = ["— Bitte waehlen —"] + sorted(BASISPREIS_PRO_QUARTIER.keys())
-quartier  = st.selectbox("In welchem Stadtquartier liegt die Immobilie?", options=QUARTIERE)
+st.subheader("Lage") #Erstellt einen Untertitel in Streamlit
+QUARTIERE = ["— Bitte waehlen —"] + sorted(BASISPREIS_PRO_QUARTIER.keys()) #Zwei Listen werden erstellt und miteinander verbunden. Die erste besteht aus dem Platzhalter: Bitte waehlen. Die zweite Liste besteht aus allen Schlüsseln (Quartiernamen) des Dictionaries, welche alphabetisch sortiert werden.
+quartier  = st.selectbox("In welchem Stadtquartier liegt die Immobilie?", options=QUARTIERE) #Ein Dropdown Menü wird in Streamlit erstellt mit einem Beschriftungstext. Das Dropdown Menu beinhaltet eine Liste aller Optionen, die in der vorherigen Zeile definiert wurde. 
 
 # ── 2. GROESSE ──
-st.subheader("Groesse")
-col1, col2 = st.columns(2)
-with col1:
-    zimmerzahl = st.selectbox(
-        "Anzahl Zimmer",
-        options=["1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5+"],
-        index=4
+st.subheader("Groesse") #Erstellt einen Untertitel in Streamlit
+col1, col2 = st.columns(2) #Die Seite wird in zwei gleich breite Spalten aufgeteilt. col1 links und col2 rechts.
+with col1: #Definiert, was in der linken Spalte angezeigt wird
+    zimmerzahl = st.selectbox( #Erstellt ein Dropdown Menü und speichert den Eingabewert unter zimmerzahl ab
+        "Anzahl Zimmer", #Definiert den Text über dem Dropdown Menu
+        options=["1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5+"], #Beschreibt die Liste aller auswählbaren Optionen
+        index=0 #Definiert den Standardwert bei Index 0 --> 1 Zimmer
     )
-with col2:
-    wohnflaeche = st.number_input(
-        "Wohnflaeche (m2)", min_value=20, max_value=500, value=80, step=5
+with col2: #Definiert, was in der rechten Spalte angezeigt wird
+    wohnflaeche = st.number_input( #Erstellt ein Eingabefeld und speichert den Eingabewert unter wohnflaeche
+        "Wohnflaeche (m2)", min_value=10, max_value=500, value=10, step=5 #Definiert die kleinste erlaubte Zahl, die grösste erlaubte Zahl, den Standardwert und die Steps (wenn man auf + klickt, springt die Zahl um diesen Wert)
     )
 
 # ── 3. GEBAEUDE ──
-st.subheader("Gebaeude")
-col3, col4 = st.columns(2)
-with col3:
-    baujahr = st.slider("Baujahr", min_value=1900, max_value=2026, value=1990)
-with col4:
-    stockwerk = st.selectbox(
-        "Stockwerk",
-        options=[
+st.subheader("Gebaeude") #Erstellt einen Untertitel in Streamlit
+col3, col4 = st.columns(2) #Die Seite wird in zwei gleich breite Spalten aufgeteilt. col3 links und col4 rechts.
+with col3: #Definiert die linke Seite
+    baujahr = st.slider("Baujahr", min_value=1900, max_value=2026, value=1990) #Erstellt einen Schieberegler in Streamlit mit dem Beschriftungstext, dem Mindestwert, dem Maximalwert und dem Standardwert und speichert den Eingabewert unter baujahr
+with col4: #Definiert die rechte Seite
+    stockwerk = st.selectbox( #Erstellt ein Dropdown Menu und speichert den Eingabewert unter stockwerk ab
+        "Stockwerk", #Definiert den Text über dem Dropdown Menü
+        options=[ #Beschreibt die Liste aller auswählbaren Optionen, Erdgeschoss wird mit index 0 als Stadardwert gezeigt
             "Erdgeschoss", "1. Obergeschoss", "2. Obergeschoss",
             "3. Obergeschoss", "4. Obergeschoss",
             "5. OG oder hoeher", "Dachgeschoss"
@@ -406,37 +406,37 @@ with col4:
     )
 
 # ── 4. ZUSTAND ──
-st.subheader("Zustand")
-zustand = st.radio(
-    "Wie ist der aktuelle Renovationsstand?",
-    options=["Neuwertig / Neubau", "Gut gepflegt", "Renovationsbeduerftig"],
-    index=1,
-    horizontal=True
+st.subheader("Zustand") #Erstellt einen Untertitel in Streamlit
+zustand = st.radio( #Erstellt buttons, von denen der User eine Option wählen kann
+    "Wie ist der aktuelle Renovationsstand?", #Definiert den Text über den Buttons
+    options=["Neuwertig / Neubau", "Gut gepflegt", "Renovationsbeduerftig"], #Definiert die Liste aller auswählbaren Optionen
+    index=1, #Setzt Gut gepflegt als Standardwert
+    horizontal=True #Formatiert die Buttons horizontal, also nebeneinander
 )
 
 # ── 5. AUSSTATTUNG ──
-st.subheader("Ausstattung")
-col5, col6 = st.columns(2)
-with col5:
-    hat_balkon    = st.checkbox("Balkon / Terrasse")
+st.subheader("Ausstattung") #Erstellt einen Untertitel in Streamlit
+col5, col6 = st.columns(2) #Die Seite wird in zwei gleich breite Spalten aufgeteilt. col5 links und col6 rechts.
+with col5: #Definiert die linke Seite
+    hat_balkon    = st.checkbox("Balkon / Terrasse") 
     hat_parkplatz = st.checkbox("Parkplatz / Garage")
-    hat_lift      = st.checkbox("Lift im Gebaeude")
-with col6:
+    hat_lift      = st.checkbox("Lift im Gebaeude")#Erstellt Checkboxen, welche den Wert als True speichert, wenn die Checkbox aktiviert wurde und als False, wenn sie nicht aktiviert wurde. Die Standardwerte sind False
+with col6: #Definiert die rechte Seite
     hat_keller   = st.checkbox("Keller / Estrich")
     hat_seesicht = st.checkbox("Seesicht / Aussicht")
-    hat_minergie = st.checkbox("Minergie-Standard")
+    hat_minergie = st.checkbox("Minergie-Standard") #Erstellt Checkboxen, welche den Wert als True speichert, wenn die Checkbox aktiviert wurde und als False, wenn sie nicht aktiviert wurde. Die Standardwerte sind False
 
 # ── 6. BERECHNUNG & ERGEBNIS ──
-st.markdown("---")
-berechnen = st.button("Marktwert berechnen")
+st.markdown("---") #Erstellt eine horizontale Trennlinie in Streamlit
+berechnen = st.button("Marktwert berechnen") #Erstellt einen Button mit dem Text Marktwert berechnen, wenn der Button angeglickt wird, wird der Wert True in der variable berechnen gespeichert. Ansonsten False.
 
 # Session State initialisieren – speichert Ergebnisse über Neuladen hinweg
-if "ergebnis" not in st.session_state:
-    st.session_state.ergebnis = None
+if "ergebnis" not in st.session_state: 
+    st.session_state.ergebnis = None #Erstellt leeren Platz für ergebnis beim Start der App. Wird päter mit dem berechneten Preis überschrieben, sobald User auf Marktwert berechnen klickt.
 
-if berechnen:
+if berechnen: #Sofern der Button Marktwert berechnen geklickt wurde, ist diese if-Bedingung true
     if quartier == "— Bitte waehlen —":
-        st.error("Bitte waehle ein Stadtquartier aus.")
+        st.error("Bitte waehle ein Stadtquartier aus.") #Erstellt eine Fehlermeldung mit dem Test Bitte waehle ein Stadtquartier aus, wenn bei quartier nichts angewählt wurde
     else:
         ausstattung = {
             "hat_balkon":    hat_balkon,
@@ -444,16 +444,16 @@ if berechnen:
             "hat_lift":      hat_lift,
             "hat_keller":    hat_keller,
             "hat_seesicht":  hat_seesicht,
-            "hat_minergie":  hat_minergie,
+            "hat_minergie":  hat_minergie, #Alle Ausstattungswerte, welche angegeben wurden, werden in einem Dictionary zusammengefasst
         }
 
-        preis_pro_m2, gesamtpreis, faktoren = berechne_preis(
+        preis_pro_m2, gesamtpreis, faktoren = berechne_preis( #Ruft die in Zeile 122-148 definierte Funktion ab und übergibt die Angaben des Users
             quartier, zimmerzahl, wohnflaeche,
             baujahr, stockwerk, zustand, ausstattung
         )
 
         # Ergebnis im Session State speichern
-        st.session_state.ergebnis = {
+        st.session_state.ergebnis = { #überschreibt das none im session state mit den berechneten und eingegebenen Werten
             "preis_pro_m2": preis_pro_m2,
             "gesamtpreis":  gesamtpreis,
             "faktoren":     faktoren,
@@ -461,12 +461,12 @@ if berechnen:
         }
 
 # Ergebnis anzeigen – bleibt sichtbar solange session_state gefüllt ist
-if st.session_state.ergebnis:
+if st.session_state.ergebnis: #Sofern Ergebnisse im Session state abgespeichert wurden, wird eine Kurzform für session state definiert
     e = st.session_state.ergebnis
 
-    st.markdown("### Geschaetzter Marktwert")
-    col_r1, col_r2 = st.columns(2)
-    with col_r1:
+    st.markdown("### Geschaetzter Marktwert") #Erstellt einen mittelgrossen Titel in Streamlit
+    col_r1, col_r2 = st.columns(2) #Die Seite wird in zwei gleich breite Spalten aufgeteilt. col_r1 links und col_r2 rechts
+    with col_r1: #Definiert die linke Seite
         st.metric(
             label="Geschaetzter Kaufpreis",
             value=f"CHF {e['gesamtpreis']:,.0f}".replace(",", "'")
