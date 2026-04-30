@@ -1,2 +1,5 @@
-streamlit 
+streamlit
+plotly
+folium
+streamlit-folium
 pandas
