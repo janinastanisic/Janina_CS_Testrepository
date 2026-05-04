@@ -1,4 +1,3 @@
-Gauge 
 
 # ─────────────────────────────────────────────
 # CHART 2: GAUGE – Preis im Marktvergleich
