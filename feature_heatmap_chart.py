@@ -1,9 +1,11 @@
-feature_heatmap_chart
+#feature_heatmap_chart
 
 # ─────────────────────────────────────────────
 # CHART 3: HEATMAP – Karte Zürich
 # ─────────────────────────────────────────────
-def erstelle_heatmap_karte(ausgewaehltes_quartier=None):
+import folium
+
+def erstelle_heatmap_karte(ausgewaehltes_quartier, quartier_koordinaten, basispreis_pro_quartier):
     """
     Erstellt eine interaktive Karte von Zürich mit
     farbigen Kreisen pro Quartier (grün = günstig, rot = teuer).
@@ -17,7 +19,7 @@ def erstelle_heatmap_karte(ausgewaehltes_quartier=None):
     )
 
     # Preisskala für Farbgebung berechnen
-    alle_preise = list(BASISPREIS_PRO_QUARTIER.values())
+    alle_preise = list(basispreis_pro_quartier.values())
     min_p = min(alle_preise)
     max_p = max(alle_preise)
 
@@ -40,15 +42,15 @@ def erstelle_heatmap_karte(ausgewaehltes_quartier=None):
         return f"#{r:02x}{g:02x}{b:02x}"
 
     # Kreise für jedes Quartier zeichnen
-    for quartier, (lat, lon) in QUARTIER_KOORDINATEN.items():
-        preis = BASISPREIS_PRO_QUARTIER.get(quartier, 11000)
+    for quartier, (lat, lon) in quartier_koordinaten.items():
+        preis = basispreis_pro_quartier.get(quartier, 11000)
         farbe = preis_zu_farbe(preis)
 
         # Ausgewähltes Quartier speziell hervorheben
         ist_ausgewaehlt = (quartier == ausgewaehltes_quartier)
         rand_farbe  = "#1a1a2e" if ist_ausgewaehlt else "#ffffff"
         rand_breite = 3 if ist_ausgewaehlt else 1
-        radius      = 600 if ist_ausgewaehlt else 450
+        radius      = 600 if ist_ausgewaehlt else 450 #rausnehmen?
 
         # Kreis mit Tooltip
         folium.CircleMarker(

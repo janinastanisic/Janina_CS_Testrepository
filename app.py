@@ -5,10 +5,14 @@
 
 import streamlit as st #importiert das Framework Streamlit, mit der Abkürzung st
 import plotly.graph_objects as go #importiert eine Bibliothek für interaktive Diagramme mit der low-level Variante go
+import plotly.express as px #???? raus nehmen, nutzen wir nicht???? Bibliothek für interaktive Diagramme, px als high-level Variante
 import folium #importiert interaktive Landkarten
 from streamlit_folium import st_folium #Bindeglied, damit die Karte in Streamlit angezeigt werden kann
 from feature_dataset import get_daten #importiert get_daten vom Dataset Feature
-
+from feature_Koordinaten import get_koordinaten
+from feature_heatmap_chart import erstelle_heatmap_karte
+from feature_machine_learning import trainiere_knn_modell, ml_basispreis_schaetzen
+from feature_waterfall_chart import erstelle_waterfall_chart 
 # Seitenkonfiguration von Streamlit: Titel setzen und mittig zentrieren
 st.set_page_config(
     page_title="Immobilien-Preisschätzer Zürich",
@@ -28,37 +32,16 @@ BASISPREIS_PRO_QUARTIER = (
     .to_dict()
 )
 
+#ML-Modell wird beim start einmalig trainiert
+knn_modell, knn_le, _, _, _ = trainiere_knn_modell(df)
 
 # ─────────────────────────────────────────────
 # KOORDINATEN DER QUARTIERE (Mittelpunkte)
-# Für die Heatmap auf der Karte !!!!! wird noch geändert
+# Fuer die Heatmap auf der Karte !!!!! wurde mit feature_Koordinaten angepasst
 # ─────────────────────────────────────────────
-QUARTIER_KOORDINATEN = {
-    "Affoltern":            (47.4233, 8.5117),
-    "Albisrieden":          (47.3733, 8.4900),
-    "Altstetten":           (47.3867, 8.4833),
-    "City":                 (47.3744, 8.5410),
-    "Enge":                 (47.3617, 8.5300),
-    "Escher Wyss":          (47.3883, 8.5167),
-    "Fluntern":             (47.3833, 8.5617),
-    "Gewerbeschule":        (47.3783, 8.5367),
-    "Hard":                 (47.3817, 8.5067),
-    "Hirslanden":           (47.3617, 8.5733),
-    "Hirzenbach":           (47.4000, 8.5817),
-    "Hochschulen":          (47.3767, 8.5483),
-    "Hoengg":               (47.4000, 8.4933),
-    "Hottingen":            (47.3700, 8.5617),
-    "Langstrasse":          (47.3783, 8.5233),
-    "Leimbach":             (47.3333, 8.5100),
-    "Lindenhof":            (47.3683, 8.5217),
-    "Oerlikon":             (47.4083, 8.5433),
-    "Rathaus":              (47.3717, 8.5433),
-    "Schwamendingen-Mitte": (47.4083, 8.5650),
-    "Seebach":              (47.4250, 8.5367),
-    "Wollishofen":          (47.3433, 8.5283),
-    "Wipkingen":            (47.3933, 8.5267),
-    "Witikon":              (47.3567, 8.5917),
-}
+
+QUARTIER_KOORDINATEN = get_koordinaten()
+
 
 # ─────────────────────────────────────────────
 # KORREKTURFAKTOREN:Der Faktor wird mit dem Basispreis mulitpliziert und passt den Preis prozentual an. Bsp. Faktor 0.92 = Preis wird um 8% reduziert. Die Faktoren basieren auf Schätzwerten.
@@ -120,7 +103,8 @@ def faktor_baujahr(baujahr):
 # ─────────────────────────────────────────────
 def berechne_preis(quartier, zimmerzahl, wohnflaeche, baujahr,
                    stockwerk, zustand, ausstattung): #Definition einer Funktion mit Eingabewerten
-    basispreis  = BASISPREIS_PRO_QUARTIER.get(quartier, 11000) #holt den Wert, der bei quartier als Input angegeben wurde und sucht dessen Basispreis. Falls der Wert nicht gefunden wurde, wird 11000 als Standardwert verwendet.
+    ml_preis = ml_basispreis_schaetzen(knn_modell, knn_le, quartier, zimmerzahl, jahr=2026)
+    basispreis = ml_preis if ml_preis is not None else BASISPREIS_PRO_QUARTIER.get(quartier, 11000) 
     f_zimmer    = FAKTOR_ZIMMER.get(zimmerzahl, 1.00) #holt den Wert, der bei zimmerzahl als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
     f_zustand   = FAKTOR_ZUSTAND.get(zustand, 1.00) #holt den Wert, der bei zustand als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
     f_stockwerk = FAKTOR_STOCKWERK.get(stockwerk, 1.00) #holt den Wert, der bei stockwerk als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
@@ -147,66 +131,7 @@ def berechne_preis(quartier, zimmerzahl, wohnflaeche, baujahr,
     return round(preis_pro_m2), round(gesamtpreis), faktoren #gibt den gerundeten Preis pro m2, den gerundeten Gesamtpreis und das Dictionary der Faktoren zurück
 
 
-# ─────────────────────────────────────────────
-# CHART 1: DONUT – Zusammensetzung des Preises
-# ─────────────────────────────────────────────
-def erstelle_donut_chart(faktoren):
-    """
-    Zeigt den relativen Einfluss jedes Faktors
-    als Anteil am Gesamtpreis (in Prozent).
-    """
-    # Nur Faktoren ohne Basispreis und nur wenn sie vom Standard (1.0) abweichen
-    labels = []
-    anteile = []
 
-    faktor_map = {
-        "Zimmerzahl":  faktoren["Zimmerzahl"],
-        "Zustand":     faktoren["Zustand"],
-        "Stockwerk":   faktoren["Stockwerk"],
-        "Baujahr":     faktoren["Baujahr"],
-        "Ausstattung": faktoren["Ausstattung"],
-    }
-
-    # Basispreis als grössten Anteil setzen
-    gesamt = faktoren["Basispreis (Quartier)"]
-    basis_anteil = 100.0
-
-    # Anteil jedes Faktors berechnen (Abweichung von 1.0 in Prozent)
-    faktor_anteile = {}
-    for name, wert in faktor_map.items():
-        abweichung = abs((wert - 1.0) * 100)
-        if abweichung > 0.1:  # nur relevante Faktoren anzeigen
-            faktor_anteile[name] = round(abweichung, 1)
-            basis_anteil -= abweichung
-
-    labels = ["Lage (Quartier)"] + list(faktor_anteile.keys())
-    werte  = [round(max(basis_anteil, 50), 1)] + list(faktor_anteile.values())
-    farben = ["#378ADD", "#1D9E75", "#EF9F27", "#D85A30", "#7F77DD", "#5DCAA5"]
-
-    fig = go.Figure(go.Pie(
-        labels    = labels,
-        values    = werte,
-        hole      = 0.6,
-        marker    = dict(colors=farben[:len(labels)]),
-        textinfo  = "label+percent",
-        hovertemplate = "<b>%{label}</b><br>Einfluss: %{value:.1f}%<extra></extra>",
-    ))
-
-    fig.update_layout(
-        title       = "Zusammensetzung des Preises – Einfluss der Faktoren",
-        showlegend  = False,
-        plot_bgcolor  = "white",
-        paper_bgcolor = "white",
-        margin = dict(t=60, b=20, l=20, r=20),
-        annotations = [dict(
-            text      = "Einfluss",
-            x=0.5, y=0.5,
-            font_size = 14,
-            showarrow = False,
-            font_color= "#6c757d"
-        )]
-    )
-    return fig
 
 
 # ─────────────────────────────────────────────
@@ -262,105 +187,6 @@ def erstelle_gauge_chart(preis_pro_m2, quartier):
 
 
 # ─────────────────────────────────────────────
-# CHART 3: HEATMAP – Karte Zürich
-# ─────────────────────────────────────────────
-def erstelle_heatmap_karte(ausgewaehltes_quartier=None):
-    """
-    Erstellt eine interaktive Karte von Zürich mit
-    farbigen Kreisen pro Quartier (grün = günstig, rot = teuer).
-    Das ausgewählte Quartier wird speziell markiert.
-    """
-    # Karte auf Zürich zentrieren
-    karte = folium.Map(
-        location=[47.3769, 8.5417],
-        zoom_start=12,
-        tiles="CartoDB positron"   # helles, klares Kartenlayout
-    )
-
-    # Preisskala für Farbgebung berechnen
-    alle_preise = list(BASISPREIS_PRO_QUARTIER.values())
-    min_p = min(alle_preise)
-    max_p = max(alle_preise)
-
-    def preis_zu_farbe(preis):
-        """
-        Berechnet eine Farbe auf der Skala grün → gelb → rot
-        basierend auf dem Preis relativ zum Min/Max.
-        """
-        ratio = (preis - min_p) / (max_p - min_p)  # 0 = günstig, 1 = teuer
-        if ratio < 0.5:
-            # grün → gelb
-            r = int(255 * (ratio * 2))
-            g = 200
-            b = 50
-        else:
-            # gelb → rot
-            r = 220
-            g = int(200 * (1 - (ratio - 0.5) * 2))
-            b = 50
-        return f"#{r:02x}{g:02x}{b:02x}"
-
-    # Kreise für jedes Quartier zeichnen
-    for quartier, (lat, lon) in QUARTIER_KOORDINATEN.items():
-        preis = BASISPREIS_PRO_QUARTIER.get(quartier, 11000)
-        farbe = preis_zu_farbe(preis)
-
-        # Ausgewähltes Quartier speziell hervorheben
-        ist_ausgewaehlt = (quartier == ausgewaehltes_quartier)
-        rand_farbe  = "#1a1a2e" if ist_ausgewaehlt else "#ffffff"
-        rand_breite = 3 if ist_ausgewaehlt else 1
-        radius      = 600 if ist_ausgewaehlt else 450
-
-        # Kreis mit Tooltip
-        folium.CircleMarker(
-            location = [lat, lon],
-            radius   = 18 if ist_ausgewaehlt else 14,
-            color    = rand_farbe,
-            weight   = rand_breite,
-            fill           = True,
-            fill_color     = farbe,
-            fill_opacity   = 0.85,
-            tooltip = folium.Tooltip(
-                f"<b>{quartier}</b><br>"
-                f"Basispreis: CHF {preis:,}/m²".replace(",", "'")
-                + (" ← Ihre Immobilie" if ist_ausgewaehlt else "")
-            )
-        ).add_to(karte)
-
-        # Quartier-Name als Label
-        folium.Marker(
-            location=[lat, lon],
-            icon=folium.DivIcon(
-                html=f'<div style="font-size:9px; font-weight:{"700" if ist_ausgewaehlt else "500"}; '
-                     f'color:#1a1a2e; white-space:nowrap; '
-                     f'text-shadow: 1px 1px 2px white, -1px -1px 2px white;">'
-                     f'{quartier}</div>',
-                icon_size=(120, 20),
-                icon_anchor=(60, -8),
-            )
-        ).add_to(karte)
-
-    # Legende hinzufügen
-    legende_html = """
-    <div style="position: fixed; bottom: 30px; left: 30px; z-index: 1000;
-                background: white; padding: 12px 16px; border-radius: 8px;
-                border: 1px solid #e2e8f0; font-size: 12px; font-family: sans-serif;">
-        <b style="font-size:13px;">Preis pro m²</b><br><br>
-        <span style="display:inline-block;width:14px;height:14px;
-              background:#00c832;border-radius:50%;margin-right:6px;
-              vertical-align:middle;"></span>Günstig (&lt; CHF 10'000)<br>
-        <span style="display:inline-block;width:14px;height:14px;
-              background:#ffc832;border-radius:50%;margin-right:6px;
-              vertical-align:middle;"></span>Mittel (CHF 10'000–14'000)<br>
-        <span style="display:inline-block;width:14px;height:14px;
-              background:#dc3232;border-radius:50%;margin-right:6px;
-              vertical-align:middle;"></span>Teuer (&gt; CHF 14'000)
-    </div>
-    """
-    karte.get_root().html.add_child(folium.Element(legende_html))
-
-    return karte
-
 
 # =============================================================
 # STREAMLIT APP
@@ -415,27 +241,27 @@ zustand = st.radio( #Erstellt buttons, von denen der User eine Option wählen ka
 
 # ── 5. AUSSTATTUNG ──
 st.subheader("Ausstattung") #Erstellt einen Untertitel in Streamlit
-col5, col6 = st.columns(2) #Die Seite wird in zwei gleich breite Spalten aufgeteilt. col5 links und col6 rechts.
+col5, col6 = st.columns(2) #Die Seite wird in zwei gleich breite Spalten aufgeteilt. col5 links und col6 rechts
 with col5: #Definiert die linke Seite
-    hat_balkon    = st.checkbox("Balkon / Terrasse") 
+    hat_balkon    = st.checkbox("Balkon / Terrasse") #Erstellt Checkboxen, welche den Wert als True speichert, wenn die Checkbox aktiviert wurde und als False, wenn sie nicht aktiviert wurde. Die Standardwerte sind False
     hat_parkplatz = st.checkbox("Parkplatz / Garage")
-    hat_lift      = st.checkbox("Lift im Gebaeude")#Erstellt Checkboxen, welche den Wert als True speichert, wenn die Checkbox aktiviert wurde und als False, wenn sie nicht aktiviert wurde. Die Standardwerte sind False
-with col6: #Definiert die rechte Seite
+    hat_lift      = st.checkbox("Lift im Gebaeude")
+with col6:
     hat_keller   = st.checkbox("Keller / Estrich")
     hat_seesicht = st.checkbox("Seesicht / Aussicht")
     hat_minergie = st.checkbox("Minergie-Standard") #Erstellt Checkboxen, welche den Wert als True speichert, wenn die Checkbox aktiviert wurde und als False, wenn sie nicht aktiviert wurde. Die Standardwerte sind False
 
 # ── 6. BERECHNUNG & ERGEBNIS ──
 st.markdown("---") #Erstellt eine horizontale Trennlinie in Streamlit
-berechnen = st.button("Marktwert berechnen") #Erstellt einen Button mit dem Text Marktwert berechnen, wenn der Button angeglickt wird, wird der Wert True in der variable berechnen gespeichert. Ansonsten False.
+berechnen = st.button("Marktwert berechnen") #Erstellt einen Button mit dem Text Marktwert berechnen, wenn der Button angeglickt wird, wird der Wert True in der variable berechnen gespeichert. Ansonsten False
 
-# Session State initialisieren – speichert Ergebnisse über Neuladen hinweg
-if "ergebnis" not in st.session_state: 
-    st.session_state.ergebnis = None #Erstellt leeren Platz für ergebnis beim Start der App. Wird päter mit dem berechneten Preis überschrieben, sobald User auf Marktwert berechnen klickt.
+# Session State initialisieren – speichert Ergebnisse über Neuladen hinweg. Erstellt leeren Platz für Ergebnis beim Start der App. Wird päter mit dem berechneten Preis überschrieben, sobald User auf Marktwert berechnen klickt.
+if "ergebnis" not in st.session_state:
+    st.session_state.ergebnis = None
 
 if berechnen: #Sofern der Button Marktwert berechnen geklickt wurde, ist diese if-Bedingung true
     if quartier == "— Bitte waehlen —":
-        st.error("Bitte waehle ein Stadtquartier aus.") #Erstellt eine Fehlermeldung mit dem Test Bitte waehle ein Stadtquartier aus, wenn bei quartier nichts angewählt wurde
+        st.error("Bitte waehle ein Stadtquartier aus.") #Erstellt eine Fehlermeldung mit dem Text Bitte waehle ein Stadtquartier aus, wenn bei quartier nichts angewählt wurde
     else:
         ausstattung = {
             "hat_balkon":    hat_balkon,
@@ -443,7 +269,7 @@ if berechnen: #Sofern der Button Marktwert berechnen geklickt wurde, ist diese i
             "hat_lift":      hat_lift,
             "hat_keller":    hat_keller,
             "hat_seesicht":  hat_seesicht,
-            "hat_minergie":  hat_minergie, #Alle Ausstattungswerte, welche angegeben wurden, werden in einem Dictionary zusammengefasst
+            "hat_minergie":  hat_minergie, #Wenn die obige if Bedingung nicht erfüllt ist, werden alle Ausstattungswerte, welche angegeben wurden, in einem Dictionary zusammengefasst
         }
 
         preis_pro_m2, gesamtpreis, faktoren = berechne_preis( #Ruft die in Zeile 122-148 definierte Funktion ab und übergibt die Angaben des Users
@@ -459,30 +285,32 @@ if berechnen: #Sofern der Button Marktwert berechnen geklickt wurde, ist diese i
             "quartier":     quartier,
         }
 
-# Ergebnis anzeigen – bleibt sichtbar solange session_state gefüllt ist
-if st.session_state.ergebnis: #Sofern Ergebnisse im Session state abgespeichert wurden, wird eine Kurzform für session state definiert
+# Ergebnis anzeigen – bleibt sichtbar solange session_state gefüllt ist: Sofern Ergebnisse im Session state abgespeichert wurden, wird eine Kurzform für session state definiert
+if st.session_state.ergebnis:
     e = st.session_state.ergebnis
 
     st.markdown("### Geschaetzter Marktwert") #Erstellt einen mittelgrossen Titel in Streamlit
     col_r1, col_r2 = st.columns(2) #Die Seite wird in zwei gleich breite Spalten aufgeteilt. col_r1 links und col_r2 rechts
     with col_r1: #Definiert die linke Seite
-        st.metric(
-            label="Geschaetzter Kaufpreis",
-            value=f"CHF {e['gesamtpreis']:,.0f}".replace(",", "'")
-        )
-    with col_r2:
         st.metric( #Formatiert die nächsten Zeilen als Kennzahlen (Kleiner Text + Grosse Zahl)
-            label="Preis pro m2",
-            value=f"CHF {e['preis_pro_m2']:,.0f}".replace(",", "'") #Zahl wird mit Hochkommas als Tausendertrennzeichen dargestellt
+            label="Geschaetzter Kaufpreis", #Kleiner Text
+            value=f"CHF {e['gesamtpreis']:,.0f}".replace(",", "'") #Grosse Zahl, die berechnet wurde. Zahl wird mit Hochkommas als Tausendertrennzeichen dargestellt
+        )
+    with col_r2: #Definiert die rechte Seite
+        st.metric(#Formatiert die nächsten Zeilen als Kennzahlen (Kleiner Text + Grosse Zahl)
+            label="Preis pro m2", #Kleiner Text
+            value=f"CHF {e['preis_pro_m2']:,.0f}".replace(",", "'") #Grosse Zahl, die berechnet wurde. Zahl wird mit Hochkommas als Tausendertrennzeichen dargestellt
         )
 
-    st.markdown("---")
+    st.markdown("---") #Erstellt eine horizontale Trennlinie in Streamlit
 
-    # Chart 1: Donut
-    st.markdown("### Zusammensetzung des Preises")
-    st.caption("Prozentualer Einfluss der einzelnen Merkmale auf den Endpreis.")
-    fig_donut = erstelle_donut_chart(e["faktoren"])
-    st.plotly_chart(fig_donut, width="stretch")
+ 
+
+    # Chart 1: Waterfall
+    st.markdown("### Preiszusammensetzung – Schritt für Schritt")
+    st.caption("Wie sich der Endpreis aus dem Basispreis und den einzelnen Faktoren aufbaut.")
+    fig_waterfall = erstelle_waterfall_chart(e["faktoren"], e["preis_pro_m2"])
+    st.plotly_chart(fig_waterfall, width="stretch")
 
     # Chart 2: Gauge
     st.markdown("### Preis im Marktvergleich")
@@ -499,5 +327,5 @@ if st.session_state.ergebnis: #Sofern Ergebnisse im Session state abgespeichert 
         "Grün = günstigere Quartiere, Rot = teurere Quartiere. "
         "Ihr Quartier ist dunkel umrandet."
     )
-    karte = erstelle_heatmap_karte(ausgewaehltes_quartier=e["quartier"])
+    karte = erstelle_heatmap_karte(ausgewaehltes_quartier=e["quartier"], quartier_koordinaten=QUARTIER_KOORDINATEN, basispreis_pro_quartier=BASISPREIS_PRO_QUARTIER)
     st_folium(karte, use_container_width=True, height=450)
