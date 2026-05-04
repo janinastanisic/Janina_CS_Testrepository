@@ -1,19 +1,13 @@
-# =============================================================
 # feature_berechnung.py
-# Enthält alle Korrekturfaktoren und die Preisberechnungslogik
-# =============================================================
+from feature_machine_learning import ml_basispreis_schaetzen
 
 # ─────────────────────────────────────────────
-# KORREKTURFAKTOREN: Der Faktor wird mit dem Basispreis multipliziert
-# und passt den Preis prozentual an.
-# Bsp. Faktor 0.92 = Preis wird um 8% reduziert.
-# Die Faktoren basieren auf Schätzwerten.
+# KORREKTURFAKTOREN:Der Faktor wird mit dem Basispreis mulitpliziert und passt den Preis prozentual an. Bsp. Faktor 0.92 = Preis wird um 8% reduziert. Die Faktoren basieren auf Schätzwerten.
 # ─────────────────────────────────────────────
-
 FAKTOR_ZIMMER = {
     "1": 0.92, "1.5": 0.95, "2": 0.97, "2.5": 0.99,
     "3": 1.00, "3.5": 1.01, "4": 1.02, "4.5": 1.03, "5+": 1.04,
-}
+} 
 
 FAKTOR_ZUSTAND = {
     "Neuwertig / Neubau":    1.10,
@@ -38,8 +32,7 @@ AUSSTATTUNG_FAKTOREN = {
     "hat_keller":    0.01,
     "hat_seesicht":  0.08,
     "hat_minergie":  0.03,
-} # Jede zusätzliche Ausstattung addiert einen Prozentsatz zum Preis.
-  # Bsp. Faktor 0.03 = +3%. Der Prozentsatz basiert auf Schätzwerten.
+} #Jede zusätzliche Ausstattung addiert einen Prozentsatz zum Preis: Bsp. Faktor 0.03 = +3%. Der Prozentsatz basiert auf Schätzwerten.
 
 AUSSTATTUNG_LABELS = {
     "hat_balkon":    "Balkon / Terrasse",
@@ -48,16 +41,14 @@ AUSSTATTUNG_LABELS = {
     "hat_keller":    "Keller / Estrich",
     "hat_seesicht":  "Seesicht",
     "hat_minergie":  "Minergie",
-} # Übersetzung von internen Bezeichnungen in lesbare Texte für die App
+} #Übersetzung von Bezeichnungen in Texte, welche in der App ersichtlich sind
 
 
 # ─────────────────────────────────────────────
-# BAUJAHR-FAKTOR
-# Das Alter der Immobilie wird berechnet und in Kategorien eingeteilt.
-# Bsp. wenn Immobilie jünger als 5 Jahre ist, wird der Preis um 10% erhöht.
+# BAUJAHR-FAKTOR: 
 # ─────────────────────────────────────────────
 def faktor_baujahr(baujahr):
-    alter = 2026 - baujahr
+    alter = 2026 - baujahr #Alter der Immobilie wird berechnet. Das Alter wird in Kategorien eingeteil. Bsp. wenn Immobilie jünger als 5 Jahre ist, wird der Preis um 10% erhöht.
     if alter <= 5:    return 1.10
     elif alter <= 15: return 1.05
     elif alter <= 30: return 1.00
@@ -66,34 +57,28 @@ def faktor_baujahr(baujahr):
 
 
 # ─────────────────────────────────────────────
-# BERECHNUNGSFUNKTION
-# Definition der Funktion berechne_preis mit allen Eingabewerten des Users
+# BERECHNUNGSFUNKTION: Die Funktion berechne_preis wird definiert
 # ─────────────────────────────────────────────
 def berechne_preis(quartier, zimmerzahl, wohnflaeche, baujahr,
-                   stockwerk, zustand, ausstattung, basispreis_pro_quartier):
-    """
-    Berechnet den geschätzten Kaufpreis einer Immobilie.
+                   stockwerk, zustand, ausstattung,
+                   knn_modell, knn_le, basispreis_pro_quartier): #Definition einer Funktion mit Eingabewerten
+    ml_preis = ml_basispreis_schaetzen(knn_modell, knn_le, quartier, zimmerzahl, jahr=2026)
+    basispreis = ml_preis if ml_preis is not None else basispreis_pro_quartier.get(quartier, 11000) 
+    f_zimmer    = FAKTOR_ZIMMER.get(zimmerzahl, 1.00) #holt den Wert, der bei zimmerzahl als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
+    f_zustand   = FAKTOR_ZUSTAND.get(zustand, 1.00) #holt den Wert, der bei zustand als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
+    f_stockwerk = FAKTOR_STOCKWERK.get(stockwerk, 1.00) #holt den Wert, der bei stockwerk als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
+    f_baujahr   = faktor_baujahr(baujahr) #holt den Wert, der bei baujahr als Input angegeben wurde und nimmt den Korrekturfaktor.
 
-    Eingaben:   Alle Angaben des Users aus dem Fragebogen
-    Rückgabe:   Preis pro m² (int), Gesamtpreis (int), Faktoren (dict)
-    """
-
-    basispreis  = basispreis_pro_quartier.get(quartier, 11000) # Basispreis aus Quartier holen, Standardwert 11000 falls nicht gefunden
-    f_zimmer    = FAKTOR_ZIMMER.get(zimmerzahl, 1.00)           # Korrekturfaktor Zimmerzahl, Standardwert 1.00
-    f_zustand   = FAKTOR_ZUSTAND.get(zustand, 1.00)             # Korrekturfaktor Zustand, Standardwert 1.00
-    f_stockwerk = FAKTOR_STOCKWERK.get(stockwerk, 1.00)         # Korrekturfaktor Stockwerk, Standardwert 1.00
-    f_baujahr   = faktor_baujahr(baujahr)                       # Korrekturfaktor Baujahr aus Funktion holen
-
-    f_ausstattung = 1.00 # Startet bei 1.00
-    for merkmal, wert in ausstattung.items(): # Iteriert durch alle Ausstattungsmerkmale
-        if wert: # Nur wenn Checkbox aktiviert (True)
-            f_ausstattung += AUSSTATTUNG_FAKTOREN.get(merkmal, 0) # Prozentsatz addieren
+    f_ausstattung = 1.00 #Startet bei 1.00. 
+    for merkmal, wert in ausstattung.items(): #Iteriert mit einer for Schleife durch alle Ausstattungsmerkmale durch
+        if wert: #Nur wenn eine Checkbox aktiviert ist (deren Wert = True) wird der nächste Schritt durchgeführt
+            f_ausstattung += AUSSTATTUNG_FAKTOREN.get(merkmal, 0) #Holt den Faktor für das Ausstattungsmerkmal aus dem obigen Dictionary und addiert ihn zu 1.00
 
     preis_pro_m2 = (basispreis * f_zimmer * f_zustand
-                    * f_stockwerk * f_baujahr * f_ausstattung) # Preis pro m² mit allen Faktoren berechnen
-    gesamtpreis  = preis_pro_m2 * wohnflaeche # Gesamtpreis = Preis pro m² × Wohnfläche
+                    * f_stockwerk * f_baujahr * f_ausstattung) #Berechnet den Preis pro Quadratmeter inklusive allen Korrekturfaktoren
+    gesamtpreis  = preis_pro_m2 * wohnflaeche #Berechnet den Gesamtpreis indem der Preis pro Quadratmeter mit der wohnflaeche als Input Multipliziert wird
 
-    faktoren = { # Alle berechneten Faktoren als Dictionary abspeichern
+    faktoren = { #speichert die berechneten Faktoren als Dictionary ab
         "Basispreis (Quartier)": basispreis,
         "Zimmerzahl":            f_zimmer,
         "Zustand":               f_zustand,
@@ -102,4 +87,4 @@ def berechne_preis(quartier, zimmerzahl, wohnflaeche, baujahr,
         "Ausstattung":           f_ausstattung,
     }
 
-    return round(preis_pro_m2), round(gesamtpreis), faktoren # Gerundete Werte und Faktoren zurückgeben
+    return round(preis_pro_m2), round(gesamtpreis), faktoren #gibt den gerundeten Preis pro m2, den gerundeten Gesamtpreis und das Dictionary der Faktoren zurück
