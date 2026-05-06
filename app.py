@@ -128,7 +128,7 @@ if berechnen: #Sofern der Button Marktwert berechnen geklickt wurde, ist diese i
         }
 
         preis_pro_m2, gesamtpreis, faktoren = berechne_preis( #Ruft die in Zeile 122-148 definierte Funktion ab und übergibt die Angaben des Users
-            quartier, zimmerzahl, wohnflaeche,
+            quartier, wohnflaeche,
             baujahr, stockwerk, zustand, ausstattung, 
             knn_modell,knn_le, BASISPREIS_PRO_QUARTIER
         )
