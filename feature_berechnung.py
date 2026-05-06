@@ -1,4 +1,4 @@
-# feature_berechnung.py
+#Berechnung_feature
 from feature_machine_learning import ml_basispreis_schaetzen
 
 # ─────────────────────────────────────────────
@@ -32,7 +32,7 @@ AUSSTATTUNG_FAKTOREN = {
     "hat_keller":    0.01,
     "hat_seesicht":  0.08,
     "hat_minergie":  0.03,
-} #Jede zusätzliche Ausstattung addiert einen Prozentsatz zum Preis: Bsp. Faktor 0.03 = +3%. Der Prozentsatz basiert auf Schätzwerten.
+} #Jede zusätzliche Ausstattung addiert einen Prozentsatz zum Preis: Bsp. Faktor 0.03 = +3%. Der Prozentsatz basiert auf Schaetzwerten.
 
 AUSSTATTUNG_LABELS = {
     "hat_balkon":    "Balkon / Terrasse",
@@ -42,7 +42,7 @@ AUSSTATTUNG_LABELS = {
     "hat_seesicht":  "Seesicht",
     "hat_minergie":  "Minergie",
 } #Übersetzung von Bezeichnungen in Texte, welche in der App ersichtlich sind
-
+#überprüfe, ob diese in anderen features verwendet werden, sonst kann mann Austattung_labels löschen
 
 # ─────────────────────────────────────────────
 # BAUJAHR-FAKTOR: 
@@ -60,10 +60,9 @@ def faktor_baujahr(baujahr):
 # BERECHNUNGSFUNKTION: Die Funktion berechne_preis wird definiert
 # ─────────────────────────────────────────────
 def berechne_preis(quartier, zimmerzahl, wohnflaeche, baujahr,
-                   stockwerk, zustand, ausstattung,
-                   knn_modell, knn_le, basispreis_pro_quartier): #Definition einer Funktion mit Eingabewerten
-    ml_preis = ml_basispreis_schaetzen(knn_modell, knn_le, quartier, zimmerzahl, jahr=2026)
-    basispreis = ml_preis if ml_preis is not None else basispreis_pro_quartier.get(quartier, 11000) 
+                   stockwerk, zustand, ausstattung,knn_modell, knn_le, BASISPREIS_PRO_QUARTIER): #Definition einer Funktion mit Eingabewerten
+    ml_preis = ml_basispreis_schaetzen(knn_modell, knn_le, quartier, zimmerzahl, jahr=2026) #berechnet den Basispreis: Jahr wird als 2026 gesetzt, da die Schätzung für den heutigen Preis ist
+    basispreis = ml_preis if ml_preis is not None else BASISPREIS_PRO_QUARTIER.get(quartier, 11000) #zb. 11k/m^2 und sonst den berechneten durchschnitt unserer Daten als Basispreis
     f_zimmer    = FAKTOR_ZIMMER.get(zimmerzahl, 1.00) #holt den Wert, der bei zimmerzahl als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
     f_zustand   = FAKTOR_ZUSTAND.get(zustand, 1.00) #holt den Wert, der bei zustand als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
     f_stockwerk = FAKTOR_STOCKWERK.get(stockwerk, 1.00) #holt den Wert, der bei stockwerk als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
@@ -75,7 +74,7 @@ def berechne_preis(quartier, zimmerzahl, wohnflaeche, baujahr,
             f_ausstattung += AUSSTATTUNG_FAKTOREN.get(merkmal, 0) #Holt den Faktor für das Ausstattungsmerkmal aus dem obigen Dictionary und addiert ihn zu 1.00
 
     preis_pro_m2 = (basispreis * f_zimmer * f_zustand
-                    * f_stockwerk * f_baujahr * f_ausstattung) #Berechnet den Preis pro Quadratmeter inklusive allen Korrekturfaktoren
+                    * f_stockwerk * f_baujahr * f_ausstattung) #Berechnet den Preis pro Quadratmeter, indem es unser durch das ML-modell kalulierter Basispreis mit allen Korrekturfaktoren multipliziert
     gesamtpreis  = preis_pro_m2 * wohnflaeche #Berechnet den Gesamtpreis indem der Preis pro Quadratmeter mit der wohnflaeche als Input Multipliziert wird
 
     faktoren = { #speichert die berechneten Faktoren als Dictionary ab
