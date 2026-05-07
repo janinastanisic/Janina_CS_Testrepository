@@ -101,9 +101,10 @@ st.subheader("Ausstattung") #Erstellt einen Untertitel in Streamlit
 col5, col6 = st.columns(2) #Die Seite wird in zwei gleich breite Spalten aufgeteilt. col5 links und col6 rechts
 with col5: #Definiert die linke Seite
     hat_balkon    = st.checkbox("Balkon / Terrasse") #Erstellt Checkboxen, welche den Wert als True speichert, wenn die Checkbox aktiviert wurde und als False, wenn sie nicht aktiviert wurde. Die Standardwerte sind False
-    hat_tiefgarage = st.checkbox("Tiefgarage")
+    hat_parkplatz = st.checkbox("Parkplatz / Garage")
     hat_lift      = st.checkbox("Lift im Gebäude")
 with col6:
+    hat_keller   = st.checkbox("Keller / Estrich")
     hat_seesicht = st.checkbox("Seesicht / Aussicht")
     hat_minergie = st.checkbox("Minergie-Standard") #Erstellt Checkboxen, welche den Wert als True speichert, wenn die Checkbox aktiviert wurde und als False, wenn sie nicht aktiviert wurde. Die Standardwerte sind False
 
@@ -121,14 +122,15 @@ if berechnen: #Sofern der Button Marktwert berechnen geklickt wurde, ist diese i
     else:
         ausstattung = {
             "hat_balkon":    hat_balkon,
-            "hat_tiefgarage": hat_tiefgarage,
+            "hat_parkplatz": hat_parkplatz,
             "hat_lift":      hat_lift,
+            "hat_keller":    hat_keller,
             "hat_seesicht":  hat_seesicht,
             "hat_minergie":  hat_minergie, #Wenn die obige if Bedingung nicht erfüllt ist, werden alle Ausstattungswerte, welche angegeben wurden, in einem Dictionary zusammengefasst
         }
 
         preis_pro_m2, gesamtpreis, faktoren = berechne_preis( #Ruft die in Zeile 122-148 definierte Funktion ab und übergibt die Angaben des Users
-            quartier, wohnflaeche,
+            quartier, zimmerzahl, wohnflaeche,
             baujahr, stockwerk, zustand, ausstattung, 
             knn_modell,knn_le, BASISPREIS_PRO_QUARTIER
         )

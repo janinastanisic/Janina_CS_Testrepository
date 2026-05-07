@@ -3,35 +3,38 @@ from feature_machine_learning import ml_basispreis_schaetzen
 
 # ─────────────────────────────────────────────
 # KORREKTURFAKTOREN:Der Faktor wird mit dem Basispreis mulitpliziert und passt den Preis prozentual an. Bsp. Faktor 0.92 = Preis wird um 8% reduziert. Die Faktoren basieren auf Schätzwerten.
-# ───────────────────────────────────────────── 
+# ─────────────────────────────────────────────
 
 FAKTOR_ZUSTAND = {
-    "Neuwertig / Neubau":    1.125,
-    "Gut gepflegt":          1.75,
-    "Renovationsbeduerftig": 0.00,
+    "Neuwertig / Neubau":    1.10,
+    "Gut gepflegt":          1.00,
+    "Renovationsbeduerftig": 0.85,
 }
 
 FAKTOR_STOCKWERK = {
-    "Erdgeschoss":       1.00,
-    "1. Obergeschoss":   1.02,
-    "2. Obergeschoss":   1.04,
-    "3. Obergeschoss":   1.06,
-    "4. Obergeschoss":   1.08,
-    "5. OG oder hoeher": 1.1,
+    "Erdgeschoss":       0.95,
+    "1. Obergeschoss":   0.98,
+    "2. Obergeschoss":   1.00,
+    "3. Obergeschoss":   1.02,
+    "4. Obergeschoss":   1.04,
+    "5. OG oder hoeher": 1.06,
+    "Dachgeschoss":      1.08,
 }
 
 AUSSTATTUNG_FAKTOREN = {
-    "hat_balkon":    0.1385,
-    "hat_tiefgarage": 0.1,
-    "hat_lift":      0.022,
-    "hat_seesicht":  0.11,
-    "hat_minergie":  0.0491,
-} #Jede zusätzliche Ausstattung addiert einen Prozentsatz zum Preis: Bsp. Faktor 0.03 = +3%. Der Prozentsatz basiert auf Schaetzwerten.
+    "hat_balkon":    0.03,
+    "hat_parkplatz": 0.04,
+    "hat_lift":      0.02,
+    "hat_keller":    0.01,
+    "hat_seesicht":  0.08,
+    "hat_minergie":  0.03,
+} #Jede zusätzliche Ausstattung addiert einen Prozentsatz zum Preis: Bsp. Faktor 0.03 = +3%. Der Prozentsatz basiert auf Schätzwerten.
 
 AUSSTATTUNG_LABELS = {
     "hat_balkon":    "Balkon / Terrasse",
-    "hat_tiefgarage": "Tiefgarage",
+    "hat_parkplatz": "Parkplatz / Garage",
     "hat_lift":      "Lift",
+    "hat_keller":    "Keller / Estrich",
     "hat_seesicht":  "Seesicht",
     "hat_minergie":  "Minergie",
 } #Übersetzung von Bezeichnungen in Texte, welche in der App ersichtlich sind
@@ -52,9 +55,9 @@ def faktor_baujahr(baujahr):
 # ─────────────────────────────────────────────
 # BERECHNUNGSFUNKTION: Die Funktion berechne_preis wird definiert
 # ─────────────────────────────────────────────
-def berechne_preis(quartier, wohnflaeche, baujahr,
+def berechne_preis(quartier, zimmerzahl, wohnflaeche, baujahr,
                    stockwerk, zustand, ausstattung,knn_modell, knn_le, BASISPREIS_PRO_QUARTIER): #Definition einer Funktion mit Eingabewerten
-    ml_preis = ml_basispreis_schaetzen(knn_modell, knn_le, quartier, jahr=2026) #berechnet den Basispreis: Jahr wird als 2026 gesetzt, da die Schätzung für den heutigen Preis ist
+    ml_preis = ml_basispreis_schaetzen(knn_modell, knn_le, quartier, zimmerzahl, jahr=2026) #berechnet den Basispreis: Jahr wird als 2026 gesetzt, da die Schätzung für den heutigen Preis ist
     basispreis = ml_preis if ml_preis is not None else BASISPREIS_PRO_QUARTIER.get(quartier, 11000) #zb. 11k/m^2 und sonst den berechneten durchschnitt unserer Daten als Basispreis
     f_zustand   = FAKTOR_ZUSTAND.get(zustand, 1.00) #holt den Wert, der bei zustand als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
     f_stockwerk = FAKTOR_STOCKWERK.get(stockwerk, 1.00) #holt den Wert, der bei stockwerk als Input angegeben wurde und nimmt den Korrekturfaktor. Falls der Wert nicht gefunden wurde, wird 1.00 als Standardwert verwendet.
