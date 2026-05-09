@@ -13,7 +13,7 @@ from feature_heatmap_chart import erstelle_heatmap_karte
 from feature_machine_learning import trainiere_knn_modell, ml_basispreis_schaetzen
 from feature_waterfall_chart import erstelle_waterfall_chart 
 from feature_gauge_chart import erstelle_gauge_chart
-from feature_berechnung import berechne_preis, FAKTOR_ZUSTAND, FAKTOR_STOCKWERK, AUSSTATTUNG_FAKTOREN, AUSSTATTUNG_LABELS
+from feature_berechnung import berechne_preis, FAKTOR_ZUSTAND, FAKTOR_STOCKWERK, AUSSTATTUNG_FAKTOREN
 # Seitenkonfiguration von Streamlit: Titel setzen und mittig zentrieren
 st.set_page_config(
     page_title="Immobilien-Preisschätzer Zürich",
@@ -48,13 +48,13 @@ QUARTIER_KOORDINATEN = get_koordinaten()
 # STREAMLIT APP
 # =============================================================
 
-st.title("Immobilien-Preisschätzer Zürich") #Erstellt den Titel in Streamlit
+st.title("Fairestate - Wohnungspreisschätzer der Stadt Zürich") #Erstellt den Titel in Streamlit
 st.write("Gib die Eigenschaften deiner Immobilie ein - wir berechnen den geschätzten Marktwert.") #Erstellt den Beschreibungstext in Streamlit
 st.markdown("---") #Erstellt eine horizontale Trennlinie in Streamlit
 
 # ── 1. LAGE ──
 st.subheader("Lage") #Erstellt einen Untertitel in Streamlit
-QUARTIERE = ["— Bitte waehlen —"] + sorted(BASISPREIS_PRO_QUARTIER.keys()) #Zwei Listen werden erstellt und miteinander verbunden. Die erste besteht aus dem Platzhalter: Bitte waehlen. Die zweite Liste besteht aus allen Schlüsseln (Quartiernamen) des Dictionaries, welche alphabetisch sortiert werden.
+QUARTIERE = ["— Bitte wählen —"] + sorted(BASISPREIS_PRO_QUARTIER.keys()) #Zwei Listen werden erstellt und miteinander verbunden. Die erste besteht aus dem Platzhalter: Bitte waehlen. Die zweite Liste besteht aus allen Schlüsseln (Quartiernamen) des Dictionaries, welche alphabetisch sortiert werden.
 quartier  = st.selectbox("In welchem Stadtquartier liegt die Immobilie?", options=QUARTIERE) #Ein Dropdown Menü wird in Streamlit erstellt mit einem Beschriftungstext. Das Dropdown Menu beinhaltet eine Liste aller Optionen, die in der vorherigen Zeile definiert wurde. 
 
 # ── 2. GROESSE ──
@@ -92,7 +92,7 @@ with col4: #Definiert die rechte Seite
 st.subheader("Zustand") #Erstellt einen Untertitel in Streamlit
 zustand = st.radio( #Erstellt buttons, von denen der User eine Option wählen kann
     "Wie ist der aktuelle Renovationsstand?", #Definiert den Text über den Buttons
-    options=["Neuwertig / Neubau", "Gut gepflegt", "Renovationsbeduerftig"], #Definiert die Liste aller auswählbaren Optionen
+    options=["Neuwertig / Neubau", "Gut gepflegt", "Renovationsbedürftig"], #Definiert die Liste aller auswählbaren Optionen
     index=1, #Setzt Gut gepflegt als Standardwert
     horizontal=True #Formatiert die Buttons horizontal, also nebeneinander
 )
