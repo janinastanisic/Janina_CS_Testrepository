@@ -42,7 +42,9 @@ def erstelle_gauge_chart(preis_pro_m2, quartier, ml_basispreis, BASISPREIS_PRO_Q
         value = preis_pro_m2, #Der berechnete Endpreis der Wohnung
         delta = {
             "reference": basispreis, #Vergleichswert: ML-Basispreis
-            "suffix": " CHF/m2" #Plotly verwendet die Standardfarben des Themes
+            "increasing": {"color": "#666666"}, #grau wenn teurer als Basispreis
+            "decreasing": {"color": "#666666"}, #grau wenn günstiger als Basispreis
+            "suffix": " CHF/m2"
         },
         number = {"suffix": " CHF/m²", "font": {"size": 28}}, #Formatiert Zahl mit Einheit und Schriftgrösse
         title = {"text": f"{quartier}: Preis im Vergleich zum Zürcher Markt", #Definiert den Titel mit dynamischem Quartiernamen
