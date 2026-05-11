@@ -40,13 +40,9 @@ def erstelle_gauge_chart(preis_pro_m2, quartier, ml_basispreis, BASISPREIS_PRO_Q
     fig = go.Figure(go.Indicator( #Erstellt einen Plotly-Chart vom Typ Indicator
         mode  = "gauge+number+delta", #Zeigt drei Elemente: Den Halbkreis, die grosse Zahl in der Mitte und die Differenz zum Basispreis
         value = preis_pro_m2, #Der berechnete Endpreis der Wohnung
-    delta = {
-        "reference": basispreis,
-        "increasing": {"color": "#000000"},  # schwarz wenn teurer als Basispreis
-        "decreasing": {"color": "#000000"},  # schwarz wenn günstiger als Basispreis
-        "suffix": " CHF/m2"
-    },
-},
+        delta = {
+            "reference": basispreis, #Vergleichswert: ML-Basispreis
+            "suffix": " CHF/m2" #Plotly verwendet die Standardfarben des Themes
         },
         number = {"suffix": " CHF/m²", "font": {"size": 28}}, #Formatiert Zahl mit Einheit und Schriftgrösse
         title = {"text": f"{quartier}: Preis im Vergleich zum Zürcher Markt", #Definiert den Titel mit dynamischem Quartiernamen
